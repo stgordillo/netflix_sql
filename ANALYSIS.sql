@@ -1,16 +1,16 @@
 --Checking out the columns--
 SELECT *
-FROM nflx
+FROM netflix_2021
 LIMIT 10;
 
 --Changing column names to be recognizable and also because cast is already a SQL function--
-ALTER TABLE nflx
-RENAME COLUMN type TO kind;
+ALTER TABLE netflix_2021
+RENAME COLUMN type TO movie_or_show;
 
-ALTER TABLE nflx
+ALTER TABLE netflix_2021
 RENAME COLUMN "cast" TO cast_members;
 
-ALTER TABLE nflx
+ALTER TABLE netflix_2021
 RENAME COLUMN listed_in TO genres;
 
 --Finding the nulls in each column--
@@ -27,31 +27,44 @@ SELECT
 	SUM(CASE WHEN duration IS NULL THEN 1 ELSE 0 END) AS duration_nulls,
 	SUM(CASE WHEN genres IS NULL THEN 1 ELSE 0 END) AS genres_nulls,
 	SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS description_nulls
-FROM nflx;
+FROM netflix_2021;
 --2634 nulls found in director, 825 in cast_members, 831 in country, 10 in date_added, 4 in rating, and 3 in duration--
 --I'm going to replace the nulls in director with "unknown", drop cast_members, country, and description since I won't need them to find the answers to my business questions and delete the rows of missing data in the rest--
 
 --Dropping unneeded columns--
-ALTER TABLE nflx DROP COLUMN cast_members, 
+ALTER TABLE netflix_2021 DROP COLUMN cast_members, 
 	DROP COLUMN country, 
 	DROP COLUMN description;
 
 --Deleting rows with nulls in date_added, rating and duration--
 --Checking the data first before deleting it--
-SELECT * FROM nflx
-WHERE date_added IS NULL OR rating IS NULL OR duration IS NULL;
+SELECT * FROM netflix_2021
+WHERE date_added IS NULL 
+	OR rating IS NULL 
+	OR duration IS NULL;
 --17 rows in total--
-DELETE FROM nflx
-WHERE date_added IS NULL OR rating IS NULL OR duration IS NULL;
+DELETE FROM netflix_2021
+WHERE date_added IS NULL 
+	OR rating IS NULL 
+	OR duration IS NULL;
 
---Removing "TV", "Show", and "Movies" from the genres column since I already have a column that describes where it is a Movie or a TV Show--
-UPDATE nflx
-SET genres = REPLACE(genres, 'TV', '');
+--Checking out what countries make the most movies
+SELECT country, COUNT(country) AS most
+FROM netflix_2021
+GROUP BY country
+ORDER BY most DESC;
 
-UPDATE nflx
-SET genres = REPLACE(genres, 'Shows', '');
+--Most popularly produced genres on Netflix--
+SELECT genres, COUNT(genres) AS most_produced_genres
+FROM netflix_2021
+GROUP by genres
+ORDER BY most_produced_genres DESC;
 
-UPDATE nflx
-SET genres = REPLACE(genres, 'Movies', '');
-
---Dividing each genre up into individual categories--
+--How many shows are on Netflix compared to movies?--
+SELECT
+	(SELECT COUNT(movie_or_show)
+	FROM netflix_2021
+	WHERE movie_or_show = 'Movie') AS movie,
+	COUNT(movie_or_show) AS show
+FROM netflix_2021
+WHERE movie_or_show = 'TV Show';
