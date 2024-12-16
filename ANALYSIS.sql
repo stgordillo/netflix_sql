@@ -88,24 +88,30 @@ ORDER BY show_count DESC
 LIMIT 5;
 
 --Ratings for each Movie on Netflix--
-SELECT
-	COUNT(CASE WHEN rating = 'G' THEN 1 END) AS g_rating,
+WITH total_ratings AS 
+	(SELECT COUNT(CASE WHEN rating = 'G' THEN 1 END) AS g_rating,
 	COUNT(CASE WHEN rating = 'PG' THEN 1 END) AS pg_rating,
 	COUNT(CASE WHEN rating = 'PG-13' THEN 1 END) AS pg13_rating,
-	COUNT(CASE WHEN rating = 'R' THEN 1 END) AS g_rating,
+	COUNT(CASE WHEN rating = 'R' THEN 1 END) AS r_rating,
 	COUNT(CASE WHEN rating = 'NC-17' THEN 1 END) AS nc17_rating,
 	COUNT(CASE WHEN rating = 'UR' or rating = 'NR' THEN 1 END) AS unrated_rating
-FROM netflix_2021;
+    FROM netflix_2021)
+SELECT *,
+       (g_rating + pg_rating + pg13_rating + r_rating + nc17_rating + unrated_rating) AS total_movie_ratings
+FROM total_ratings;
 
 --Ratings for each TV Show on Netflix--
-SELECT
-	COUNT(CASE WHEN rating = 'TV-Y' THEN 1 END) AS tv_y_rating,
-	COUNT(CASE WHEN rating = 'TV-Y7' or rating = 'TV-Y7-FA' THEN 1 END) AS tv_y7_rating,
-	COUNT(CASE WHEN rating = 'TV-G' THEN 1 END) AS tv_g_rating,
-	COUNT(CASE WHEN rating = 'TV-14' THEN 1 END) AS tv_14_rating,
-	COUNT(CASE WHEN rating = 'TV-PG' THEN 1 END) AS tv_pg_rating,
-	COUNT(CASE WHEN rating = 'TV-MA' THEN 1 END) AS tv_ma_rating,
-FROM netflix_2021;
+WITH total_ratings AS 
+	(SELECT COUNT(CASE WHEN rating = 'TV-Y' THEN 1 END) AS tvy_rating,
+	COUNT(CASE WHEN rating = 'TV-Y7' OR rating = 'TV-Y7-FA' THEN 1 END) AS tvy7_rating,
+	COUNT(CASE WHEN rating = 'TV-G' THEN 1 END) AS tvg_rating,
+	COUNT(CASE WHEN rating = 'TV-14' THEN 1 END) AS tv14_rating,
+	COUNT(CASE WHEN rating = 'TV-PG' THEN 1 END) AS tvpg_rating,
+	COUNT(CASE WHEN rating = 'TV-MA' THEN 1 END) AS tvma_rating
+	FROM netflix_2021)
+SELECT *,
+       (tvy_rating + tvy7_rating + tvg_rating + tv14_rating + tvpg_rating + tvma_rating) AS total_tv_ratings
+FROM total_ratings;
 
 --What's the percentage of ratings per genre?--
 SELECT 
