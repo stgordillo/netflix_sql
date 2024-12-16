@@ -68,3 +68,51 @@ SELECT
 	COUNT(movie_or_show) AS show
 FROM netflix_2021
 WHERE movie_or_show = 'TV Show';
+
+--What genres are most common for Movies?--
+SELECT  
+    genres,
+    COUNT(CASE WHEN movie_or_show = 'Movie' THEN 1 END) AS movie_count
+FROM netflix_2021
+GROUP BY genres
+ORDER BY movie_count DESC
+LIMIT 5;
+
+--Also, what genres are most common for TV Shows?--
+SELECT  
+    genres,
+    COUNT(CASE WHEN movie_or_show = 'TV Show' THEN 1 END) AS show_count
+FROM netflix_2021
+GROUP BY genres
+ORDER BY show_count DESC
+LIMIT 5;
+
+--Ratings for each Movie on Netflix--
+SELECT
+	COUNT(CASE WHEN rating = 'G' THEN 1 END) AS g_rating,
+	COUNT(CASE WHEN rating = 'PG' THEN 1 END) AS pg_rating,
+	COUNT(CASE WHEN rating = 'PG-13' THEN 1 END) AS pg13_rating,
+	COUNT(CASE WHEN rating = 'R' THEN 1 END) AS g_rating,
+	COUNT(CASE WHEN rating = 'NC-17' THEN 1 END) AS nc17_rating,
+	COUNT(CASE WHEN rating = 'UR' or rating = 'NR' THEN 1 END) AS unrated_rating
+FROM netflix_2021;
+
+--Ratings for each TV Show on Netflix--
+SELECT
+	COUNT(CASE WHEN rating = 'TV-Y' THEN 1 END) AS tv_y_rating,
+	COUNT(CASE WHEN rating = 'TV-Y7' or rating = 'TV-Y7-FA' THEN 1 END) AS tv_y7_rating,
+	COUNT(CASE WHEN rating = 'TV-G' THEN 1 END) AS tv_g_rating,
+	COUNT(CASE WHEN rating = 'TV-14' THEN 1 END) AS tv_14_rating,
+	COUNT(CASE WHEN rating = 'TV-PG' THEN 1 END) AS tv_pg_rating,
+	COUNT(CASE WHEN rating = 'TV-MA' THEN 1 END) AS tv_ma_rating,
+FROM netflix_2021;
+
+--What's the percentage of ratings per genre?--
+SELECT 
+    genres,
+    rating,
+    COUNT(*) AS count,
+    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY genres), 2) AS percentage
+FROM netflix_2021
+GROUP BY genres, rating
+ORDER BY genres, percentage DESC;
