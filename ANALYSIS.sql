@@ -112,7 +112,7 @@ SELECT
     genres,
     rating,
     COUNT(*) AS count,
-    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY genres), 2) AS percentage
+    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY genres), 2) AS percent_of_genres
 FROM netflix_2021
 GROUP BY genres, rating
-ORDER BY genres, percentage DESC;
+ORDER BY genres, percent_of_genres DESC;
