@@ -15,8 +15,8 @@ RENAME COLUMN listed_in TO genres;
 
 --Finding the nulls in each column--
 SELECT 
-	SUM(CASE WHEN show_id IS NULL THEN 1 ELSE 0 END) AS show_id_nulls,
-	SUM(CASE WHEN kind IS NULL THEN 1 ELSE 0 END) AS type_nulls,
+	SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS show_id_nulls,
+	SUM(CASE WHEN movie_or_show IS NULL THEN 1 ELSE 0 END) AS type_nulls,
 	SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS title_nulls,
 	SUM(CASE WHEN director IS NULL THEN 1 ELSE 0 END) AS director_nulls,
 	SUM(CASE WHEN cast_members IS NULL THEN 1 ELSE 0 END) AS cast_nulls,
@@ -87,7 +87,7 @@ GROUP BY genres
 ORDER BY show_count DESC
 LIMIT 5;
 
---Ratings for each Movie on Netflix--
+--Ratings for each Movie on Netflix using Common Table Expression--
 WITH total_ratings AS 
 	(SELECT COUNT(CASE WHEN rating = 'G' THEN 1 END) AS g_rating,
 	COUNT(CASE WHEN rating = 'PG' THEN 1 END) AS pg_rating,
@@ -100,7 +100,7 @@ SELECT *,
        (g_rating + pg_rating + pg13_rating + r_rating + nc17_rating + unrated_rating) AS total_movie_ratings
 FROM total_ratings;
 
---Ratings for each TV Show on Netflix--
+--Ratings for each TV Show on Netflix using Common Table Expression--
 WITH total_ratings AS 
 	(SELECT COUNT(CASE WHEN rating = 'TV-Y' THEN 1 END) AS tvy_rating,
 	COUNT(CASE WHEN rating = 'TV-Y7' OR rating = 'TV-Y7-FA' THEN 1 END) AS tvy7_rating,
@@ -122,3 +122,12 @@ SELECT
 FROM netflix_2021
 GROUP BY genres, rating
 ORDER BY genres, percent_of_genres DESC;
+
+--How has the number of titles added to Netflix changed over time?--
+SELECT 
+    DATE_PART('year', date_added) AS year_streamed,
+    COUNT(*) AS title_count
+FROM netflix_2021
+WHERE date_added IS NOT NULL
+GROUP BY DATE_PART('year', date_added)
+ORDER BY year_streamed;
