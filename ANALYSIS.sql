@@ -49,10 +49,16 @@ WHERE date_added IS NULL
 	OR duration IS NULL;
 
 --Checking out what countries make the most movies
-SELECT country, COUNT(country) AS most
+SELECT country, COUNT(country) AS movies_per_country
 FROM netflix_2021
 GROUP BY country
-ORDER BY most DESC;
+ORDER BY movies_per_country DESC;
+
+--Who are the most prolific directors represented on Netflix?--
+SELECT director, COUNT(director) AS director_count
+FROM netflix_2021
+GROUP BY director
+ORDER BY director_count DESC;
 
 --Most popularly produced genres on Netflix--
 SELECT genres, COUNT(genres) AS most_produced_genres
@@ -68,6 +74,7 @@ SELECT
 	COUNT(movie_or_show) AS show
 FROM netflix_2021
 WHERE movie_or_show = 'TV Show';
+
 
 --What genres are most common for Movies?--
 SELECT  
@@ -87,7 +94,7 @@ GROUP BY genres
 ORDER BY show_count DESC
 LIMIT 5;
 
---Ratings for each Movie on Netflix using Common Table Expression--
+--Ratings for each Movie on Netflix--
 WITH total_ratings AS 
 	(SELECT COUNT(CASE WHEN rating = 'G' THEN 1 END) AS g_rating,
 	COUNT(CASE WHEN rating = 'PG' THEN 1 END) AS pg_rating,
@@ -100,7 +107,7 @@ SELECT *,
        (g_rating + pg_rating + pg13_rating + r_rating + nc17_rating + unrated_rating) AS total_movie_ratings
 FROM total_ratings;
 
---Ratings for each TV Show on Netflix using Common Table Expression--
+--Ratings for each TV Show on Netflix using a Common Table Expression--
 WITH total_ratings AS 
 	(SELECT COUNT(CASE WHEN rating = 'TV-Y' THEN 1 END) AS tvy_rating,
 	COUNT(CASE WHEN rating = 'TV-Y7' OR rating = 'TV-Y7-FA' THEN 1 END) AS tvy7_rating,
@@ -112,6 +119,7 @@ WITH total_ratings AS
 SELECT *,
        (tvy_rating + tvy7_rating + tvg_rating + tv14_rating + tvpg_rating + tvma_rating) AS total_tv_ratings
 FROM total_ratings;
+
 
 --What's the percentage of ratings per genre?--
 SELECT 
@@ -131,3 +139,88 @@ FROM netflix_2021
 WHERE date_added IS NOT NULL
 GROUP BY DATE_PART('year', date_added)
 ORDER BY year_streamed;
+
+--Are there seasonal trends in content releases?--
+--A. Total titles released per season--
+
+SELECT 
+    CASE
+        WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+        WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+        WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+        WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+    END AS season,
+    COUNT(*) AS title_count
+FROM netflix_2021
+WHERE date_added IS NOT NULL
+GROUP BY season
+ORDER BY title_count DESC;
+
+--B. Top 3 genres realeased per season along with number of titles each--
+WITH season_genre_counts AS (
+    SELECT 
+        CASE
+            WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+            WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+            WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+            WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+        END AS season,
+        genres,
+        COUNT(*) AS title_count,
+        ROW_NUMBER() OVER (
+            PARTITION BY 
+                CASE
+                    WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+                    WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+                    WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+                    WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+                END
+            ORDER BY COUNT(*) DESC
+        ) AS rank
+    FROM netflix_2021
+    WHERE date_added IS NOT NULL
+    GROUP BY season, genres
+)
+SELECT season, genres, title_count
+FROM season_genre_counts
+WHERE rank <= 3
+ORDER BY season, rank;
+
+--C. Combined above, Top 3 genres per season, title count by genre per season, total titles released per season--
+WITH season_genre_counts AS (
+    SELECT 
+        CASE
+            WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+            WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+            WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+            WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+        END AS season,
+        genres,
+        COUNT(*) AS title_count,
+        SUM(COUNT(*)) OVER (
+            PARTITION BY 
+                CASE
+                    WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+                    WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+                    WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+                    WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+                END
+        ) AS total_titles_per_season,
+        ROW_NUMBER() OVER (
+            PARTITION BY 
+                CASE
+                    WHEN DATE_PART('month', date_added) IN (12, 1, 2) THEN 'Winter'
+                    WHEN DATE_PART('month', date_added) IN (3, 4, 5) THEN 'Spring'
+                    WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
+                    WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
+                END
+            ORDER BY COUNT(*) DESC
+        ) AS rank
+    FROM netflix_2021
+    WHERE date_added IS NOT NULL
+    GROUP BY season, genres
+)
+SELECT season, genres, title_count, total_titles_per_season
+FROM season_genre_counts
+WHERE rank <= 3
+ORDER BY season, rank;
