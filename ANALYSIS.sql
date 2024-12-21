@@ -3,7 +3,7 @@ SELECT *
 FROM netflix_2021
 LIMIT 10;
 
---Changing column names to be recognizable and also because cast is already a SQL function--
+--Changing column names to be recognizable and also because cast and type are already  SQL commands--
 ALTER TABLE netflix_2021
 RENAME COLUMN type TO movie_or_show;
 
@@ -11,11 +11,11 @@ ALTER TABLE netflix_2021
 RENAME COLUMN "cast" TO cast_members;
 
 ALTER TABLE netflix_2021
-RENAME COLUMN listed_in TO genres;
+RENAME COLUMN listed_in TO genre;
 
 --Finding the nulls in each column--
 SELECT 
-	SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS show_id_nulls,
+	SUM(CASE WHEN id IS NULL THEN 1 ELSE 0 END) AS id_nulls,
 	SUM(CASE WHEN movie_or_show IS NULL THEN 1 ELSE 0 END) AS type_nulls,
 	SUM(CASE WHEN title IS NULL THEN 1 ELSE 0 END) AS title_nulls,
 	SUM(CASE WHEN director IS NULL THEN 1 ELSE 0 END) AS director_nulls,
@@ -25,46 +25,56 @@ SELECT
 	SUM(CASE WHEN release_year IS NULL THEN 1 ELSE 0 END) AS release_year_nulls,
 	SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END) AS rating_nulls,
 	SUM(CASE WHEN duration IS NULL THEN 1 ELSE 0 END) AS duration_nulls,
-	SUM(CASE WHEN genres IS NULL THEN 1 ELSE 0 END) AS genres_nulls,
+	SUM(CASE WHEN genre IS NULL THEN 1 ELSE 0 END) AS genre_nulls,
 	SUM(CASE WHEN description IS NULL THEN 1 ELSE 0 END) AS description_nulls
 FROM netflix_2021;
---2634 nulls found in director, 825 in cast_members, 831 in country, 10 in date_added, 4 in rating, and 3 in duration--
---I'm going to replace the nulls in director with "unknown", drop cast_members, country, and description since I won't need them to find the answers to my business questions and delete the rows of missing data in the rest--
+/* 2634 nulls found in director, 825 in cast_members, 831 in country, 10 in date_added, 4 in rating, and 3 in duration
+I'm going to leave the nulls in director and country so I don't use them in analysis,
+drop cast_members and description since I won't need them to find the answers to my business questions 
+and delete the rows of missing data in the rest */
 
 --Dropping unneeded columns--
 ALTER TABLE netflix_2021 DROP COLUMN cast_members, 
-	DROP COLUMN country, 
 	DROP COLUMN description;
 
---Deleting rows with nulls in date_added, rating and duration--
---Checking the data first before deleting it--
+/* Deleting rows with nulls in date_added, rating and duration
+Checking the data first before deleting it */
+/*
 SELECT * FROM netflix_2021
 WHERE date_added IS NULL 
 	OR rating IS NULL 
 	OR duration IS NULL;
---17 rows in total--
+*/
+--17 rows in total
 DELETE FROM netflix_2021
 WHERE date_added IS NULL 
 	OR rating IS NULL 
 	OR duration IS NULL;
 
---Checking out what countries make the most movies
-SELECT country, COUNT(country) AS movies_per_country
+--What countries make the most tv shows and movies?
+SELECT country, COUNT(country) AS media_per_country
 FROM netflix_2021
 GROUP BY country
-ORDER BY movies_per_country DESC;
+ORDER BY media_per_country DESC;
+/* The United States has the most media by far at 2809 on Netflix 
+India is the next most at 972 followed by United Kingdom, Japan and South Korea */
 
---Who are the most prolific directors represented on Netflix?--
+--Who are the most prolific directors represented on Netflix?
 SELECT director, COUNT(director) AS director_count
 FROM netflix_2021
 GROUP BY director
-ORDER BY director_count DESC;
+ORDER BY director_count DESC
+LIMIT 10;
+/* The top director on Netflix is Rajiv Chilaka, who makes Indian children's shows
+Many of the top directors create comedy shows/specials or children's shows */
 
---Most popularly produced genres on Netflix--
-SELECT genres, COUNT(genres) AS most_produced_genres
+--Most popularly produced genre on Netflix--
+SELECT genre, COUNT(genre) AS most_produced_genre
 FROM netflix_2021
-GROUP by genres
-ORDER BY most_produced_genres DESC;
+GROUP by genre
+ORDER BY most_produced_genre DESC;
+/* Most popular genres are Dramas, Documentaries, Stand-Up Comedy Specials and Children's media (movies or shows)
+This seems to line up with the kinds of top directors that we saw in the previous query*/
 
 --How many shows are on Netflix compared to movies?--
 SELECT
@@ -74,23 +84,24 @@ SELECT
 	COUNT(movie_or_show) AS show
 FROM netflix_2021
 WHERE movie_or_show = 'TV Show';
+/* 
+*/
 
-
---What genres are most common for Movies?--
+--What genre are most common for Movies?--
 SELECT  
-    genres,
+    genre,
     COUNT(CASE WHEN movie_or_show = 'Movie' THEN 1 END) AS movie_count
 FROM netflix_2021
-GROUP BY genres
+GROUP BY genre
 ORDER BY movie_count DESC
 LIMIT 5;
 
---Also, what genres are most common for TV Shows?--
+--Also, what genre are most common for TV Shows?--
 SELECT  
-    genres,
+    genre,
     COUNT(CASE WHEN movie_or_show = 'TV Show' THEN 1 END) AS show_count
 FROM netflix_2021
-GROUP BY genres
+GROUP BY genre
 ORDER BY show_count DESC
 LIMIT 5;
 
@@ -123,13 +134,13 @@ FROM total_ratings;
 
 --What's the percentage of ratings per genre?--
 SELECT 
-    genres,
+    genre,
     rating,
     COUNT(*) AS count,
-    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY genres), 2) AS percent_of_genres
+    ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (PARTITION BY genre), 2) AS percent_of_genres
 FROM netflix_2021
-GROUP BY genres, rating
-ORDER BY genres, percent_of_genres DESC;
+GROUP BY genre, rating
+ORDER BY genre, percent_of_genres DESC;
 
 --How has the number of titles added to Netflix changed over time?--
 SELECT 
@@ -156,7 +167,7 @@ WHERE date_added IS NOT NULL
 GROUP BY season
 ORDER BY title_count DESC;
 
---B. Top 3 genres realeased per season along with number of titles each--
+--B. Top 3 genre realeased per season along with number of titles each--
 WITH season_genre_counts AS (
     SELECT 
         CASE
@@ -165,7 +176,7 @@ WITH season_genre_counts AS (
             WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
             WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
         END AS season,
-        genres,
+        genre,
         COUNT(*) AS title_count,
         ROW_NUMBER() OVER (
             PARTITION BY 
@@ -179,14 +190,14 @@ WITH season_genre_counts AS (
         ) AS rank
     FROM netflix_2021
     WHERE date_added IS NOT NULL
-    GROUP BY season, genres
+    GROUP BY season, genre
 )
-SELECT season, genres, title_count
+SELECT season, genre, title_count
 FROM season_genre_counts
 WHERE rank <= 3
 ORDER BY season, rank;
 
---C. Combined above, Top 3 genres per season, title count by genre per season, total titles released per season--
+--C. Combined above, Top 3 genre per season, title count by genre per season, total titles released per season--
 WITH season_genre_counts AS (
     SELECT 
         CASE
@@ -195,7 +206,7 @@ WITH season_genre_counts AS (
             WHEN DATE_PART('month', date_added) IN (6, 7, 8) THEN 'Summer'
             WHEN DATE_PART('month', date_added) IN (9, 10, 11) THEN 'Fall'
         END AS season,
-        genres,
+        genre,
         COUNT(*) AS title_count,
         SUM(COUNT(*)) OVER (
             PARTITION BY 
@@ -218,9 +229,9 @@ WITH season_genre_counts AS (
         ) AS rank
     FROM netflix_2021
     WHERE date_added IS NOT NULL
-    GROUP BY season, genres
+    GROUP BY season, genre
 )
-SELECT season, genres, title_count, total_titles_per_season
+SELECT season, genre, title_count, total_titles_per_season
 FROM season_genre_counts
 WHERE rank <= 3
 ORDER BY season, rank;
